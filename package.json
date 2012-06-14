@@ -1,0 +1,19 @@
+{
+  "name": "smite-client",
+  "version": "0.0.1",
+  "main": "src/smiteClient.coffee",
+  "description": "Smite client side support",
+  "homepage": "http://github.com/evanmoran/smite-client/",
+  "keywords": [
+    "smite",
+    "client"
+  ],
+  "author": "Evan Moran <evan@evanmoran.com>",
+  "dependencies": {
+    "backbone": "latest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/evanmoran/smite-client.git"
+  }
+}
