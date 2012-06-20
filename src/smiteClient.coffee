@@ -25,10 +25,26 @@ _transposeMap = (obj) ->
   out
 
 #───────────────────────────
+# Smite client function:
+#   Construct bb models
+#───────────────────────────
+
+_models = {}
+smiteClientFunction = (cb) ->
+  console.log "smiteClientFunction called"
+  cb(_models)
+
+#───────────────────────────
 # Export
 #───────────────────────────
 
-module.exports = SMITECLIENT = {}
+module.exports = SMITECLIENT = smiteClientFunction
+
+#───────────────────────────
+# Model store
+#───────────────────────────
+
+SMITECLIENT.models = _models
 
 #───────────────────────────
 # Validation
