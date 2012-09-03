@@ -13,9 +13,13 @@ module.exports = SMITECLIENT = {}
 # Import SMITECLIENT like a SMITE plugin
 #──────────────────────────────────────────────────────
 
-SMITECLIENT.use = (SMITE) ->
+SMITECLIENT.use = (SMITE, settings) ->
   for attr in ['version', 'error', 'warn', 'info', 'debug', 'throw', 'clone']
     SMITECLIENT[attr] = SMITE[attr]
+
+  SMITECLIENT.settings = settings
+
+  'client'
 
 #──────────────────────────────────────────────────────
 # References
