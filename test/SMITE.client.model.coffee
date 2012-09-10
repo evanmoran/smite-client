@@ -140,6 +140,10 @@ describe 'SMITE.client.model', ->
 
   #──────────────────────────────────────────────────────
 
+  it 'Partial testing doesnt exist!'
+
+  #──────────────────────────────────────────────────────
+
   it 'should construct using `require` options (NYI)'
     # TODO: implement test for RequiredModel
 

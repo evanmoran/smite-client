@@ -1,6 +1,6 @@
 {
   "name": "smite-client",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "main": "src/SMITE.client.coffee",
   "description": "SMITE client-side framework",
   "homepage": "http://github.com/evanmoran/smite/",
