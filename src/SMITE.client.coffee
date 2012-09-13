@@ -14,7 +14,7 @@ module.exports = SMITECLIENT = {}
 #──────────────────────────────────────────────────────
 
 SMITECLIENT.use = (SMITE, settings) ->
-  for attr in ['version', 'error', 'warn', 'info', 'debug', 'throw', 'clone']
+  for attr in ['version', 'error', 'warn', 'info', 'debug', 'throw', 'clone', 'ErrorCode']
     SMITECLIENT[attr] = SMITE[attr]
 
   SMITECLIENT.settings = settings
@@ -192,6 +192,7 @@ SMITECLIENT.model = (name, data = {}) ->
   modelRequired = _pluckMap data, 'required'
   modelDefaults = _pluckMap data, 'default'
   modelAttributeTypes = _pluckMap data, 'type'
+  modelValidator = if _.isFunction data.validate then _data.validate else null
 
   extender =
     # Defaults pass through
@@ -205,20 +206,22 @@ SMITECLIENT.model = (name, data = {}) ->
 
     # Validate by attribute
     validate: (attributes) ->
+      validationError = (msg) ->
+          if msg then {code: SMITECLIENT.ErrorCode.ValidationFailed, message: msg} else null
       for attr in _unionKeys attributes, @validations
         value = attributes[attr]
         # Check that the attribute exists in this model
         if (attr != 'id') and not @attributeTypes[attr]
-          return "Model doesn't allow attribute #{attr}"
+          return validationError "Model doesn't allow attribute #{attr}"
         # Check if the attribute is required, else accept null
         if value == undefined
-          return if (@required[attr] == true) then "Model requires attribute #{attr}" else null
+          return if (@required[attr] == true) then validationError "Model requires attribute #{attr}" else null
         # Check that the attribute passes validation on its own
         if _.isFunction @validations[attr]
           validateResponse = @validations[attr](value, attr)
           if validateResponse
-            return validateResponse
-      null
+            return validationError validateResponse
+      validationError modelValidator?(attrubutes)
 
     # Override constructor to prevent partials from defaulting values
     constructor: (attributes) ->
@@ -338,7 +341,8 @@ SMITECLIENT.model = (name, data = {}) ->
 
   # Extend methods into backbone model
   for k,v of data when _.isFunction v
-    extender[k] = v
+    if k != 'validate'
+      extender[k] = v
 
   # Return backbone model
   modelOut = Backbone.Model.extend extender
