@@ -76,8 +76,8 @@ _unionKeys = ->
 #──────────────────────────────────────────────────────
 
 _.extend SMITECLIENT,
-  inList: (list) -> (v, prop) ->               if list.indexOf(v) == -1 then             "#{prop}: #{v} is not in list: #{list}"
-  inEnum: (enumList) -> (v, prop) ->           if enumList.indexOf(v) == -1 then         "#{prop}: #{v} is not in enum: #{enumList}"
+  inList: (list) -> (v, prop) ->               if not list?.indexOf? or list.indexOf(v) == -1 then         "#{prop}: #{v} is not in list: #{list}"
+  inEnum: (enumList) -> (v, prop) ->           if not enumList?.indexOf? or enumList.indexOf(v) == -1 then "#{prop}: #{v} is not in enum: #{enumList}"
 
   range: (min, max) -> (v, prop) ->            if v < min or max < v then                "#{prop}: #{v} is not in range: [#{min}, #{max}]"
   min: (min) -> (v, prop) ->                   if v < min then                           "#{prop}: #{v} is too small for min: #{min}"
@@ -85,11 +85,11 @@ _.extend SMITECLIENT,
   lessThan: (num) -> (v, prop) ->              if v >= num then                          "#{prop}: #{v} is too large for lessThan: #{num}"
   moreThan: (num) -> (v, prop) ->              if v <= num then                          "#{prop}: #{v} is too small for moreThan: #{num}"
 
-  lengthRange: (min, max) -> (v, prop) ->      if v.length < min or max < v.length then  "#{prop}: #{v}.length is not in range: [#{min}, #{max}]"
-  lengthMin: (min) -> (v, prop) ->             if v.length < min then                    "#{prop}: #{v}.length is too small for min: #{min}"
-  lengthMax: (max) -> (v, prop) ->             if v.length > max then                    "#{prop}: #{v}.length is too large for max: #{max}"
-  lengthLessThan: (num) -> (v, prop) ->        if v.length >= num then                   "#{prop}: #{v}.length is too large for lessThan: #{num}"
-  lengthMoreThan: (num) -> (v, prop) ->        if v.length <= num then                   "#{prop}: #{v}.length is too small for moreThan: #{num}"
+  lengthRange: (min, max) -> (v, prop) ->      if not v?.length? or v.length < min or max < v.length then  "#{prop}: #{v}.length is not in range: [#{min}, #{max}]"
+  lengthMin: (min) -> (v, prop) ->             if not v?.length? or v.length < min then                    "#{prop}: #{v}.length is too small for min: #{min}"
+  lengthMax: (max) -> (v, prop) ->             if not v?.length? or v.length > max then                    "#{prop}: #{v}.length is too large for max: #{max}"
+  lengthLessThan: (num) -> (v, prop) ->        if not v?.length? or v.length >= num then                   "#{prop}: #{v}.length is too large for lessThan: #{num}"
+  lengthMoreThan: (num) -> (v, prop) ->        if not v?.length? or v.length <= num then                   "#{prop}: #{v}.length is too small for moreThan: #{num}"
 
 #──────────────────────────────────────────────────────
 # ModelView
