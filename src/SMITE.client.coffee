@@ -61,6 +61,16 @@ _transposeMap = (obj) ->
       out[key2][key] = val
   out
 
+_unionKeys = ->
+  obj = {}
+  for arg in arguments
+    for k of arg
+      obj[k] = 1
+  ans = []
+  for k of obj
+    ans.push k
+  ans
+
 #──────────────────────────────────────────────────────
 # Validation
 #──────────────────────────────────────────────────────
@@ -179,12 +189,14 @@ SMITECLIENT.model = (name, data = {}) ->
   makePartial = (v) -> v._partial()
 
   modelValidations = _pluckMap data, 'validate'
+  modelRequired = _pluckMap data, 'required'
   modelDefaults = _pluckMap data, 'default'
   modelAttributeTypes = _pluckMap data, 'type'
 
   extender =
     # Defaults pass through
     validations: modelValidations
+    required: modelRequired
     defaults: modelDefaults
     attributeTypes: modelAttributeTypes
 
@@ -193,7 +205,15 @@ SMITECLIENT.model = (name, data = {}) ->
 
     # Validate by attribute
     validate: (attributes) ->
-      for attr, value of attributes
+      for attr in _unionKeys attributes, @validations
+        value = attributes[attr]
+        # Check that the attribute exists in this model
+        if (attr != 'id') and not @attributeTypes[attr]
+          return "Model doesn't allow attribute #{attr}"
+        # Check if the attribute is required, else accept null
+        if value == undefined
+          return if (@required[attr] == true) then "Model requires attribute #{attr}" else null
+        # Check that the attribute passes validation on its own
         if _.isFunction @validations[attr]
           validateResponse = @validations[attr](value, attr)
           if validateResponse
