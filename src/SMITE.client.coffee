@@ -174,7 +174,7 @@ SMITECLIENT.modelview = (name, data = {}) ->
 
 SMITECLIENT.model = (name, data = {}) ->
 
-  SMITECLIENT.throw 'SMITE.model exected string as first argument' unless _.isString name
+  SMITECLIENT.throw 'SMITE.model expected string as first argument' unless _.isString name
   SMITECLIENT.throw 'SMITE.model expected object as second argument' unless _.isObject data
 
   # name == 'Model.View.View2' => parentName = 'Model.View', baseName = 'View2'
