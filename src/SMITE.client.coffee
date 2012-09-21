@@ -1,7 +1,6 @@
 
 # smite-client
 Backbone = require 'backbone-browserify'
-console.log "Backbone: ", Backbone
 _ = require 'underscore'
 
 #──────────────────────────────────────────────────────
