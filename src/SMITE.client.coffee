@@ -72,6 +72,17 @@ _unionKeys = ->
   ans
 
 #──────────────────────────────────────────────────────
+# Error Codes
+#──────────────────────────────────────────────────────
+
+# SMITE can sometimes specially handle errors of the form:
+# {code: <ErrorCode>, message: <message>}
+SMITECLIENT.ErrorCode =
+  NotFound: ['NotFound']
+  ValidationFailed: ['ValidationFailed']
+
+
+#──────────────────────────────────────────────────────
 # Validation
 #──────────────────────────────────────────────────────
 
@@ -188,6 +199,9 @@ SMITECLIENT.model = (name, data = {}) ->
   # Convert value to a partial of itself (must be bb model)
   makePartial = (v) -> v._partial()
 
+  # Determine if type is a model
+  isModelType = (attr) -> _.isString modelAttributeTypes[attr]
+
   modelValidations = _pluckMap data, 'validate'
   modelRequired = _pluckMap data, 'required'
   modelDefaults = _pluckMap data, 'default'
@@ -205,6 +219,7 @@ SMITECLIENT.model = (name, data = {}) ->
     urlRoot: "/#{name}"
 
     # Validate by attribute
+    # TODO: Verify model type matches schema
     validate: (attributes) ->
       validationError = (msg) ->
           if msg then {code: SMITECLIENT.ErrorCode.ValidationFailed, message: msg} else null
@@ -240,10 +255,33 @@ SMITECLIENT.model = (name, data = {}) ->
       @constructor.prototype.defaults = null
       out = @constructor.__super__.constructor.apply @, [newAttributes]
 
-
       # Restore defaults
       @constructor.prototype.defaults = _defaults
       out
+
+    # Override fetch to support node-like callbacks
+    fetch: (cb) ->
+      if  _.isFunction cb
+        opts = success:((m)-> cb(undefined,m)), error:(m,e)-> cb(e,m)
+        @constructor.__super__.fetch.apply @, [opts]
+      else
+        @constructor.__super__.fetch.apply @, arguments
+
+    # Override save to support node-like callbacks
+    save: (cb) ->
+      if  _.isFunction cb
+        opts = success:((m)-> cb(undefined,m)), error:(m,e)-> cb(e,m)
+        @constructor.__super__.save.apply @, [@attributes, opts]
+      else
+        @constructor.__super__.save.apply @, arguments
+
+    # Override destroy to support node-like callbacks
+    destroy: (cb) ->
+      if  _.isFunction cb
+        opts = success:((m)-> cb(undefined,m)), error:(m,e)-> cb(e,m)
+        @constructor.__super__.destroy.apply @, [opts]
+      else
+        @constructor.__super__.destroy.apply @, arguments
 
     # Construct partial of model from the model
     _partial:  ->
@@ -312,29 +350,59 @@ SMITECLIENT.model = (name, data = {}) ->
                 parent.ref.trigger 'change', parent.ref, output, cycleGuard
 
     # Override set to keep track of parent model references
-    set: (attr, value) ->
-      # Remove old parent references
-      oldValue = @get(attr)
-      if needsParent oldValue
-        parents =  @get(attr)?.parents
-        if parents
-          oldValue.parents = _.reject parents, (parentObj) => parentObj.ref == @ && parentObj.attribute == attr
+    set: (_attr, _value) ->
+      # Set supports either _attr, _value or _attr:_value syntax. Convert
+      # both cases to _attr:_value so we can loop over all properties
+      obj = {}
+      if _.isString _attr
+        obj[_attr] = _value
+        args = Array.prototype.slice.call arguments, 2
+      else
+        obj = _.clone _attr
+        args = Array.prototype.slice.call arguments, 1
 
-      # Add to new value if it needs them
-      if needsParent value
-        value.parents ?= []
-        value.parents.push {ref: @, attribute: attr}
+      for attr, value of obj
+
+        # Remove old parent references
+        # These parent refences are kept so event notifications can be sent
+        # parent models
+        oldValue = @get(attr)
+        if needsParent oldValue
+          parents =  @get(attr)?.parents
+          if parents
+            oldValue.parents = _.reject parents, (parentObj) => parentObj.ref == @ && parentObj.attribute == attr
+
+        # Add to new parent reference if this model needs them
+        if needsParent value
+          value.parents ?= []
+          value.parents.push {ref: @, attribute: attr}
+
+        # Models can be set by id or model. If they are set by id
+        # then they should be turned automatically into partials
+        # If they are set by id but the model already exists
+        # nothing should happen
+        if isModelType(attr) and value? and not (value instanceof Backbone.Model)
+          # The model doesn't exist so make a partial of it
+          if String(oldValue?.id) != String(value)
+            modelType = modelAttributeTypes[attr]
+            Model = SMITECLIENT.models[modelType]
+            # Override with partial. Ensure id is a string
+            obj[attr] = new Model _partial: true, id: String(value)
+            return @constructor.__super__.set.apply @, [obj, args...]
+          # The model does exist so don't set anything at this attribute
+          else
+            delete obj[attr]
 
       # Call super
-      @constructor.__super__.set.apply @, [attr, value]
+      @constructor.__super__.set.apply @, [obj, args...]
 
     # Serialize to attribute object but replace models with partials
     toJSON: ->
       out = _mapMap @attributes, (value) ->
         if value instanceof Backbone.Model
-          makePartial(value)
+          value.id
         else if value instanceof Backbone.Collection
-          _.map value, makePartial
+          _.map value, (v) -> v.id
         else
           value
       out

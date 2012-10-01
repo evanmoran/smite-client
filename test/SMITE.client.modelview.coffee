@@ -52,7 +52,7 @@ ModelChangedView = SMITE.modelview 'Model.ChangedView',
 describe 'SMITE.client.modelview', ->
 
   shared.itShouldBeAFunction(SMITE.modelview)
-  shared.model.itShouldConstructABackboneModel(new Model.NumberView)
+  shared.model.itShouldConstructABackboneModel(new Model.NumberView, SMITE.Backbone)
 
   #──────────────────────────────────────────────────────
 

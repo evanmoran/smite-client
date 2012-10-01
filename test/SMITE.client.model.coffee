@@ -68,19 +68,19 @@ describe 'SMITE.client.model', ->
   it 'should support property-like access', ->
     bm = new BasicModel id: 'id1', bool: true, int: 2, real: 2.2, str: 'BasicModel argument', date: dateNow, attributes: true
 
-    bm.id.should.equal bm.get('id')
-    bm.bool.should.equal bm.get('bool')
-    bm.int.should.equal bm.get('int')
-    bm.real.should.equal bm.get('real')
-    bm.str.should.equal bm.get('str')
-    bm.date.should.equal bm.get('date')
+    expect(bm.id).to.equal bm.get('id')
+    expect(bm.bool).to.equal bm.get('bool')
+    expect(bm.int).to.equal bm.get('int')
+    expect(bm.real).to.equal bm.get('real')
+    expect(bm.str).to.equal bm.get('str')
+    expect(bm.date).to.equal bm.get('date')
 
-    bm.attributes.should.be.a 'object'
-    bm.get('attributes').should.equal true
+    expect(bm.attributes).to.be.an 'object'
+    expect(bm.get('attributes')).to.equal true
 
   #──────────────────────────────────────────────────────
 
-  shared.model.itShouldConstructABackboneModel(new BasicModel)
+  shared.model.itShouldConstructABackboneModel(new BasicModel, SMITE.Backbone)
 
   #──────────────────────────────────────────────────────
 
@@ -107,7 +107,7 @@ describe 'SMITE.client.model', ->
     # Helper to test assignment of vm properties
     testAssign = (attr, value, result) ->
       vm[attr] = value
-      vm[attr].should.equal result
+      assert(vm[attr] == result, "assign failed attr: #{attr}, value: #{value}, result: #{result}")
 
     testAssign 'intMin10', 9, 10, 'error'
     testAssign 'intMin10', 11, 11
@@ -140,7 +140,24 @@ describe 'SMITE.client.model', ->
 
   #──────────────────────────────────────────────────────
 
-  it 'Partial testing doesnt exist!'
+  it 'Partial testing is missing'
+
+  #──────────────────────────────────────────────────────
+
+  it 'set by model.id creates partial', ->
+    nmChild = new NestedModel str: 'child NestedModel'
+    nmParent = new NestedModel str: 'parent NestedModel'
+    nmParent.model = 'id-parent'
+    # setting by id converts it to a partial
+    (nmParent.model instanceof SMITE.Backbone.Model).should.be.true
+
+  #──────────────────────────────────────────────────────
+
+  it 'set by model does not convert to partial', ->
+    nmChild = new NestedModel str: 'child NestedModel'
+    nmParent = new NestedModel str: 'parent NestedModel'
+    nmParent.model = nmChild
+    nmParent.model.str.should.equal 'child NestedModel'
 
   #──────────────────────────────────────────────────────
 
@@ -225,6 +242,9 @@ describe 'SMITE.client.model', ->
       info.changes.should.have.property 'model'
       done2()
     nmChild2.str = 'child override'
+
+  it 'should receive `change` events on previously assigned model attributes', ->
+
 
   #──────────────────────────────────────────────────────
 

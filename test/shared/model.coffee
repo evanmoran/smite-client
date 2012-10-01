@@ -1,12 +1,11 @@
 
-Backbone = require 'backbone'
 module.exports =
 
   #──────────────────────────────────────────────────────
   # itShouldConstructABackboneModel
   #──────────────────────────────────────────────────────
 
-  itShouldConstructABackboneModel: (model) ->
+  itShouldConstructABackboneModel: (model, Backbone) ->
     it 'should construct a backbone model', ->
       (model instanceof Backbone.Model).should.equal true
 
