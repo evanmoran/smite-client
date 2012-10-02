@@ -215,9 +215,6 @@ SMITECLIENT.model = (name, data = {}) ->
     defaults: modelDefaults
     attributeTypes: modelAttributeTypes
 
-    # Route by name
-    urlRoot: "/#{name}"
-
     # Validate by attribute
     # TODO: Verify model type matches schema
     validate: (attributes) ->
@@ -299,9 +296,13 @@ SMITECLIENT.model = (name, data = {}) ->
       @_modelArgs = data
       @_model = (optionalName = name) -> SMITECLIENT.models[optionalName]
       @_modelParent = -> if not parentName then null else SMITECLIENT.models[parentName]
+      @_modelIsPartial = -> _.keys(@attributes).length == 1 and @id?
+
+      # TODO: Change this to a Object.setProperty that looks up value from SMITE.settings (on client)
+      @urlRoot = "/api/#{name}"
 
       # Map through attributes as properties
-      for k,v of @attributes
+      for k of modelAttributeTypes
         do (k) =>
           if _.isUndefined @[k]
             Object.defineProperty @, k,
@@ -362,36 +363,36 @@ SMITECLIENT.model = (name, data = {}) ->
         args = Array.prototype.slice.call arguments, 1
 
       for attr, value of obj
+        do (attr,value) =>
+          # Remove old parent references
+          # These parent refences are kept so event notifications can be sent
+          # parent models
+          oldValue = @get(attr)
+          if needsParent oldValue
+            parents =  @get(attr)?.parents
+            if parents
+              oldValue.parents = _.reject parents, (parentObj) => parentObj.ref == @ && parentObj.attribute == attr
 
-        # Remove old parent references
-        # These parent refences are kept so event notifications can be sent
-        # parent models
-        oldValue = @get(attr)
-        if needsParent oldValue
-          parents =  @get(attr)?.parents
-          if parents
-            oldValue.parents = _.reject parents, (parentObj) => parentObj.ref == @ && parentObj.attribute == attr
+          # Add to new parent reference if this model needs them
+          if needsParent value
+            value.parents ?= []
+            value.parents.push {ref: @, attribute: attr}
 
-        # Add to new parent reference if this model needs them
-        if needsParent value
-          value.parents ?= []
-          value.parents.push {ref: @, attribute: attr}
-
-        # Models can be set by id or model. If they are set by id
-        # then they should be turned automatically into partials
-        # If they are set by id but the model already exists
-        # nothing should happen
-        if isModelType(attr) and value? and not (value instanceof Backbone.Model)
-          # The model doesn't exist so make a partial of it
-          if String(oldValue?.id) != String(value)
-            modelType = modelAttributeTypes[attr]
-            Model = SMITECLIENT.models[modelType]
-            # Override with partial. Ensure id is a string
-            obj[attr] = new Model _partial: true, id: String(value)
-            return @constructor.__super__.set.apply @, [obj, args...]
-          # The model does exist so don't set anything at this attribute
-          else
-            delete obj[attr]
+          # Models can be set by id or model. If they are set by id
+          # then they should be turned automatically into partials
+          # If they are set by id but the model already exists
+          # nothing should happen
+          if isModelType(attr) and value? and not (value instanceof Backbone.Model)
+            # The model doesn't exist so make a partial of it
+            if String(oldValue?.id) != String(value)
+              modelType = modelAttributeTypes[attr]
+              Model = SMITECLIENT.models[modelType]
+              # Override with partial. Ensure id is a string
+              obj[attr] = new Model _partial: true, id: String(value)
+              return @constructor.__super__.set.apply @, [obj, args...]
+            # The model does exist so don't set anything at this attribute
+            else
+              delete obj[attr]
 
       # Call super
       @constructor.__super__.set.apply @, [obj, args...]
@@ -446,7 +447,7 @@ _subscript = (attr) ->
   else
     "['#{attr}']"
 
-_ravelStringify = (optionsPlain, optionsModels, store, storeName, optionsName) ->
+_ravelStringify = (optionsPlain, optionsModels, store, storeName, optionsName, settings) ->
   # Return a string of a function that takes (smite, models, options)
   output = """(function(s, m, o){ m = m || {};\n
   """
@@ -454,9 +455,10 @@ _ravelStringify = (optionsPlain, optionsModels, store, storeName, optionsName) -
   # Require modules
   moduleTypes = _.unique _.map(store, (v) -> v.type)
   if moduleTypes.length > 0
-    output += "var r = function(t){t2 = t.split('.')[0]; s[t2] = require('./models/' + t2)};\n"
+    output += "var r = function(t){t2 = t.split('.')[0]; s[t2] = require('/src/models/' + t2)};\n"
     for v in moduleTypes
       output += "r('#{v}');\n"
+      output += "s#{_subscript(v)}.extend({urlRoot: '#{settings.restUrlBase}'});\n"
 
   # Construct args
   for k, v of store
@@ -482,7 +484,7 @@ _ravelStringify = (optionsPlain, optionsModels, store, storeName, optionsName) -
     i++
 
     # return value
-  output += "\n});})(SMITE.models,#{storeName},#{optionsName});$ = require('jquery'); _ = require('underscore');\nBackbone = require('backbone');"
+  output += "\n});})(SMITE.models,#{storeName},#{optionsName});"
 
 _ravelRecurse = (options, store, getIdFn, constructArgs = {}, assignArgs = {}) ->
   for k, v of options
@@ -506,10 +508,10 @@ _ravelRecurse = (options, store, getIdFn, constructArgs = {}, assignArgs = {}) -
 #   1. Serialize into new constructors
 #   2. Minimize characters sent to client
 #   3. ...
-SMITECLIENT.ravel = (options, storeName, optionsName, getIdFn = ((v)->v.id)) ->
+SMITECLIENT.ravel = (options, storeName, optionsName, getIdFn = ((v)->v.id), settings) ->
   store = {}
   [constructArgs, assignArgs] = _ravelRecurse options, store, getIdFn
-  _ravelStringify constructArgs, assignArgs, store, storeName, optionsName
+  _ravelStringify constructArgs, assignArgs, store, storeName, optionsName, settings
 
 #───────────────────────────
 # SMITECLIENT.ravel
