@@ -207,6 +207,8 @@ SMITECLIENT.model = (name, data = {}) ->
   modelDefaults = _pluckMap data, 'default'
   modelAttributeTypes = _pluckMap data, 'type'
   modelValidator = if _.isFunction data.validate then _data.validate else null
+  modelToJson = data.toJSON
+  delete data.toJSON # this will be called by toJSON on extender
 
   extender =
     # Defaults pass through
@@ -259,7 +261,9 @@ SMITECLIENT.model = (name, data = {}) ->
     # Override fetch to support node-like callbacks
     fetch: (cb) ->
       if  _.isFunction cb
-        opts = success:((m)-> cb(undefined,m)), error:(m,e)-> cb(e,m)
+        opts =
+          success: (m) -> cb(undefined,m)
+          error:(m,e) -> cb(e,m)
         @constructor.__super__.fetch.apply @, [opts]
       else
         @constructor.__super__.fetch.apply @, arguments
@@ -267,7 +271,9 @@ SMITECLIENT.model = (name, data = {}) ->
     # Override save to support node-like callbacks
     save: (cb) ->
       if  _.isFunction cb
-        opts = success:((m)-> cb(undefined,m)), error:(m,e)-> cb(e,m)
+        opts =
+          success: (m) -> cb(undefined,m)
+          error:(m,e) -> cb(e,m)
         @constructor.__super__.save.apply @, [@attributes, opts]
       else
         @constructor.__super__.save.apply @, arguments
@@ -275,7 +281,9 @@ SMITECLIENT.model = (name, data = {}) ->
     # Override destroy to support node-like callbacks
     destroy: (cb) ->
       if  _.isFunction cb
-        opts = success:((m)-> cb(undefined,m)), error:(m,e)-> cb(e,m)
+        opts =
+          success: (m) -> cb(undefined,m)
+          error:(m,e) -> cb(e,m)
         @constructor.__super__.destroy.apply @, [opts]
       else
         @constructor.__super__.destroy.apply @, arguments
@@ -399,7 +407,11 @@ SMITECLIENT.model = (name, data = {}) ->
 
     # Serialize to attribute object but replace models with partials
     toJSON: ->
-      out = _mapMap @attributes, (value) ->
+      # Allow user to override toJSON method before ours kicks in
+      attributes = if modelToJson then modelToJson.call(@attributes) else @attributes
+
+      # Map models into their ids
+      out = _mapMap attributes, (value) ->
         if value instanceof Backbone.Model
           value.id
         else if value instanceof Backbone.Collection

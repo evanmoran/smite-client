@@ -54,6 +54,12 @@ RecursiveModel = SMITE.model 'RecursiveModel'
   model: type: 'RecursiveModel',  default: null
   str: type: String, default: "RecursiveModel default"
 
+JsonModel = SMITE.model 'JsonModel'
+  str: type: String, default: "jsmodel default"
+  model: type: 'JsonModel', default: null
+  hidden: type: String, default: 'hidden value'
+  toJSON: ->
+    str: @str, model: @model  # hidden is missing on purpose!
 
 #──────────────────────────────────────────────────────
 # Test: SMITE.model
@@ -158,6 +164,15 @@ describe 'SMITE.client.model', ->
     nmParent = new NestedModel str: 'parent NestedModel'
     nmParent.model = nmChild
     nmParent.model.str.should.equal 'child NestedModel'
+
+
+  it 'toJSON can be overridden but other is still called', ->
+
+    jmChild = new JsonModel str: 'jsmodel child', id: 'id-jsmodel-child'
+    jmParent = new JsonModel str: 'jsmodel parent', id: 'id-jsmodel-parent', model: jmChild
+    expect(jmChild.toJSON()).to.deep.equal str: 'jsmodel child', model: null
+    # model was converted to an id (our stuff works) AND hidden is missing (their stuff works)
+    expect(jmParent.toJSON()).to.deep.equal str: 'jsmodel parent', model: 'id-jsmodel-child'
 
   #──────────────────────────────────────────────────────
 
