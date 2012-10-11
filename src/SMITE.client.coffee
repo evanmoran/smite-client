@@ -268,6 +268,13 @@ SMITECLIENT.model = (name, data = {}) ->
       else
         @constructor.__super__.fetch.apply @, arguments
 
+    # Fetch only if it is a partial. Otherwise just call callback.
+    fetchOnce: (cb) ->
+      if @_modelIsPartial()
+        @fetch cb
+      else
+        cb undefined, @
+
     # Override save to support node-like callbacks
     save: (cb) ->
       if  _.isFunction cb
