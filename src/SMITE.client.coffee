@@ -7,31 +7,55 @@ _ = require 'underscore'
 # Export
 #──────────────────────────────────────────────────────
 
-module.exports = SMITECLIENT = {}
+# SMITECLIENT Function
+# ================================================================
 
-#──────────────────────────────────────────────────────
+SMITECLIENT = (settings, fn) ->
+
+  # Settings is optional
+  if _.isFunction settings
+    fn = settings
+    settings = {}
+
+  # Extend settings
+  _.extend SMITECLIENT.settings, settings
+
+  # Store the main callback
+  if _.isFunction fn
+    _mainCallbacks.push fn
+
+  # Launch smite if no arguments are passed
+  else if arguments.length == 0
+    for cb in _mainCallbacks
+      cb()
+
+_mainCallbacks = []
+
+# SMITECLIENT.settings
+# ----------------------------------------------------------------
+SMITECLIENT.settings = {}
+
 # Import SMITECLIENT like a SMITE plugin
-#──────────────────────────────────────────────────────
+# ----------------------------------------------------------------
 
 SMITECLIENT.use = (SMITE, settings) ->
   for attr in ['version', 'error', 'warn', 'info', 'debug', 'throw', 'clone', 'ErrorCode']
     SMITECLIENT[attr] = SMITE[attr]
 
-  SMITECLIENT.settings = settings
+  _.extend SMITECLIENT.settings, settings
 
   'client'
 
-#──────────────────────────────────────────────────────
 # References
-#──────────────────────────────────────────────────────
+# ----------------------------------------------------------------
 
 SMITECLIENT.Backbone = Backbone
 SMITECLIENT.models = {}           # Store of models in smite
 SMITECLIENT.modelsById = {}       # Store of models by id.
 SMITECLIENT.options = {}          # Options passed from server.
-#──────────────────────────────────────────────────────
+
 # Helpers
-#──────────────────────────────────────────────────────
+# ----------------------------------------------------------------
 
 # _pluckMap ({a1:{b1:1, b2:2}, a2:{b1:1, b2:2}}, 'b1') => {a1:1, a2:1}
 _pluckMap = (map, key) ->
@@ -71,9 +95,8 @@ _unionKeys = ->
     ans.push k
   ans
 
-#──────────────────────────────────────────────────────
 # Error Codes
-#──────────────────────────────────────────────────────
+# ----------------------------------------------------------------
 
 # SMITE can sometimes specially handle errors of the form:
 # {code: <ErrorCode>, message: <message>}
@@ -81,10 +104,8 @@ SMITECLIENT.ErrorCode =
   NotFound: ['NotFound']
   ValidationFailed: ['ValidationFailed']
 
-
-#──────────────────────────────────────────────────────
 # Validation
-#──────────────────────────────────────────────────────
+# ----------------------------------------------------------------
 
 _.extend SMITECLIENT,
   inList: (list) -> (v, prop) ->               if not list?.indexOf? or list.indexOf(v) == -1 then         "#{prop}: #{v} is not in list: #{list}"
@@ -102,10 +123,8 @@ _.extend SMITECLIENT,
   lengthLessThan: (num) -> (v, prop) ->        if not v?.length? or v.length >= num then                   "#{prop}: #{v}.length is too large for lessThan: #{num}"
   lengthMoreThan: (num) -> (v, prop) ->        if not v?.length? or v.length <= num then                   "#{prop}: #{v}.length is too small for moreThan: #{num}"
 
-#──────────────────────────────────────────────────────
 # ModelView
-#──────────────────────────────────────────────────────
-
+# ----------------------------------------------------------------
 
 SMITECLIENT.modelview = (name, data = {}) ->
 
@@ -122,7 +141,7 @@ SMITECLIENT.modelview = (name, data = {}) ->
 
   # Add toModel and fromModel methods
   _.extend data,
-    constructor: (args = {}) ->
+    constructor: (args = {}, options) ->
       # Passed a model Create pass through arguments to modelview
       if args instanceof Backbone.Model
         parentModel = args
@@ -150,7 +169,7 @@ SMITECLIENT.modelview = (name, data = {}) ->
 
 
       # Construct backbone modelview with calculated args using super
-      @constructor.__super__.constructor.call @, argsModelView
+      @constructor.__super__.constructor.call @, argsModelView, options
 
     toModel: ->
       # Create pass through arguments to model
@@ -179,9 +198,8 @@ SMITECLIENT.modelview = (name, data = {}) ->
 
   modelViewOut
 
-#──────────────────────────────────────────────────────
 # Model
-#──────────────────────────────────────────────────────
+# ----------------------------------------------------------------
 
 SMITECLIENT.model = (name, data = {}) ->
 
@@ -208,7 +226,9 @@ SMITECLIENT.model = (name, data = {}) ->
   modelAttributeTypes = _pluckMap data, 'type'
   modelValidator = if _.isFunction data.validate then _data.validate else null
   modelToJson = data.toJSON
+  modelParse = data.parse or (v) -> v
   delete data.toJSON # this will be called by toJSON on extender
+  delete data.parse # this will be called by parse on extender
 
   extender =
     # Defaults pass through
@@ -238,10 +258,10 @@ SMITECLIENT.model = (name, data = {}) ->
       validationError modelValidator?(attrubutes)
 
     # Override constructor to prevent partials from defaulting values
-    constructor: (attributes) ->
+    constructor: (attributes, options) ->
       # Pass through if partial isn't set
       if not attributes? or not attributes._partial
-        return @constructor.__super__.constructor.apply @, [attributes]
+        return @constructor.__super__.constructor.apply @, [attributes, options]
 
       # Remove _partial from
       newAttributes = _.clone attributes
@@ -252,7 +272,7 @@ SMITECLIENT.model = (name, data = {}) ->
       # and possibly breaking in future versions of backbone
       _defaults = @constructor.prototype.defaults
       @constructor.prototype.defaults = null
-      out = @constructor.__super__.constructor.apply @, [newAttributes]
+      out = @constructor.__super__.constructor.apply @, [newAttributes, options]
 
       # Restore defaults
       @constructor.prototype.defaults = _defaults
@@ -264,9 +284,9 @@ SMITECLIENT.model = (name, data = {}) ->
         opts =
           success: (m) -> cb(undefined,m)
           error:(m,e) -> cb(e,m)
-        @constructor.__super__.fetch.apply @, [opts]
       else
-        @constructor.__super__.fetch.apply @, arguments
+        opts = cb
+      @constructor.__super__.fetch.call @, opts
 
     # Fetch only if it is a partial. Otherwise just call callback.
     fetchOnce: (cb) ->
@@ -283,6 +303,7 @@ SMITECLIENT.model = (name, data = {}) ->
           error:(m,e) -> cb(e,m)
         @constructor.__super__.save.apply @, [@attributes, opts]
       else
+        # Pass through with all arguments
         @constructor.__super__.save.apply @, arguments
 
     # Override destroy to support node-like callbacks
@@ -291,9 +312,18 @@ SMITECLIENT.model = (name, data = {}) ->
         opts =
           success: (m) -> cb(undefined,m)
           error:(m,e) -> cb(e,m)
-        @constructor.__super__.destroy.apply @, [opts]
       else
-        @constructor.__super__.destroy.apply @, arguments
+        opts = cb
+      @constructor.__super__.destroy.call @, opts
+
+    # Overriding parse to ensure partials don't call their parse method
+    parse: (json) ->
+      # Parse if it isn't a partial
+      for k of json
+        if k != 'id'
+          return modelParse.apply @, arguments
+      # Partial should pass through
+      json
 
     # Construct partial of model from the model
     _partial:  ->
@@ -451,13 +481,11 @@ SMITECLIENT.model = (name, data = {}) ->
 
   modelOut
 
-#──────────────────────────────────────────────────────
 # Model Serialization (users shouldn't need to call these)
-#──────────────────────────────────────────────────────
+# ----------------------------------------------------------------
 
-#───────────────────────────
 # SMITECLIENT.ravel
-#───────────────────────────
+# ----------------------------------------------------------------
 
 # Subscript automatically between obj['foobar'] and obj.foobar if possible
 _subscript = (attr) ->
@@ -479,10 +507,12 @@ _ravelStringify = (optionsPlain, optionsModels, store, storeName, optionsName, s
       output += "r('#{v}');\n"
       output += "s#{_subscript(v)}.extend({urlRoot: '#{settings.restUrlBase}'});\n"
 
+  # Parse option forces backbone to call parse on construction
+  output += 'p = {parse:1};\n'
   # Construct args
   for k, v of store
     {type: t, construct: c} = v
-    output += "m#{_subscript(k)} = new s.#{t}(#{JSON.stringify(c)});\n"
+    output += "m#{_subscript(k)} = new s.#{t}(#{JSON.stringify(c)}, p);\n"
 
   # Assign args
   for k, v of store
@@ -532,29 +562,25 @@ SMITECLIENT.ravel = (options, storeName, optionsName, getIdFn = ((v)->v.id), set
   [constructArgs, assignArgs] = _ravelRecurse options, store, getIdFn
   _ravelStringify constructArgs, assignArgs, store, storeName, optionsName, settings
 
-#───────────────────────────
 # SMITECLIENT.ravel
-#───────────────────────────
+# ----------------------------------------------------------------
 
 # Take serialized json passed through network (or from database!)
 # And construct them into SMITE.models while handling multiple references and cycles.
 # SMITECLIENT.unravel = (attr, ModelView) ->
 
-#──────────────────────────────────────────────────────
 # SMITECLIENT.cache
-#
+# ----------------------------------------------------------------
 # Cache to keep references shared across all models the same
 # So if you query for something its children would be references
-#──────────────────────────────────────────────────────
 
 SMITECLIENT.cache = {}
 
 # Internal store for the cache
 _cache = {}
 
-#───────────────────────────
 # SMITECLIENT.cache.add
-#───────────────────────────
+# ----------------------------------------------------------------
 
 # # Recursive helper for cache add
 # _cacheAdd = (any, options) ->
@@ -633,3 +659,7 @@ _cache = {}
 #   _.each _.unique opts._changed, (model) ->
 #     model.change()
 
+# Export
+# ----------------------------------------------------------------
+
+module.exports = SMITECLIENT
