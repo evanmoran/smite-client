@@ -259,6 +259,10 @@ SMITECLIENT.model = (name, data = {}) ->
 
     # Override constructor to prevent partials from defaulting values
     constructor: (attributes, options) ->
+      # If attributes is just an id create a partial
+      if _.isString attributes or _.isNumber attributes
+        attributes = id: attributes, _partial: true
+
       # Pass through if partial isn't set
       if not attributes? or not attributes._partial
         return @constructor.__super__.constructor.apply @, [attributes, options]
@@ -433,7 +437,7 @@ SMITECLIENT.model = (name, data = {}) ->
               modelType = modelAttributeTypes[attr]
               Model = SMITECLIENT.models[modelType]
               # Override with partial. Ensure id is a string
-              obj[attr] = new Model _partial: true, id: String(value)
+              obj[attr] = new Model String(value)
               return @constructor.__super__.set.apply @, [obj, args...]
             # The model does exist so don't set anything at this attribute
             else
