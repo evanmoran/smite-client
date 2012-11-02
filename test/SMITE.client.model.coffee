@@ -1,9 +1,8 @@
 
 SMITE = require '../src/SMITE.client'
 
-#──────────────────────────────────────────────────────
 # Before
-#──────────────────────────────────────────────────────
+# ----------------------------------------------------------------
 
 EmptyModel = SMITE.model 'EmptyModel'
 
@@ -61,15 +60,14 @@ JsonModel = SMITE.model 'JsonModel'
   toJSON: ->
     str: @str, model: @model  # hidden is missing on purpose!
 
-#──────────────────────────────────────────────────────
 # Test: SMITE.model
-#──────────────────────────────────────────────────────
+# ----------------------------------------------------------------
 
 describe 'SMITE.client.model', ->
 
   shared.itShouldBeAFunction(SMITE.model)
 
-  #──────────────────────────────────────────────────────
+  # ----------------------------------------------------------------
 
   it 'should support property-like access', ->
     bm = new BasicModel id: 'id1', bool: true, int: 2, real: 2.2, str: 'BasicModel argument', date: dateNow, attributes: true
@@ -84,11 +82,11 @@ describe 'SMITE.client.model', ->
     expect(bm.attributes).to.be.an 'object'
     expect(bm.get('attributes')).to.equal true
 
-  #──────────────────────────────────────────────────────
+  # ----------------------------------------------------------------
 
   shared.model.itShouldConstructABackboneModel(new BasicModel, SMITE.Backbone)
 
-  #──────────────────────────────────────────────────────
+  # ----------------------------------------------------------------
 
   it 'should construct using `default` options', ->
     bm = new BasicModel
@@ -101,7 +99,7 @@ describe 'SMITE.client.model', ->
     nm = new NestedModel
     (nm.model == null).should.equal true
 
-  #──────────────────────────────────────────────────────
+  # ----------------------------------------------------------------
 
   it 'should construct using `validate` options', ->
     vm = new ValidationModel
@@ -144,11 +142,11 @@ describe 'SMITE.client.model', ->
     testAssign 'intCustomIsInteger', 10.9, 10, 'error'
     testAssign 'intCustomIsInteger', 11, 11
 
-  #──────────────────────────────────────────────────────
+  # ----------------------------------------------------------------
 
   it 'Partial testing is missing'
 
-  #──────────────────────────────────────────────────────
+  # ----------------------------------------------------------------
 
   it 'set by model.id creates partial', ->
     nmChild = new NestedModel str: 'child NestedModel'
@@ -157,7 +155,7 @@ describe 'SMITE.client.model', ->
     # setting by id converts it to a partial
     (nmParent.model instanceof SMITE.Backbone.Model).should.be.true
 
-  #──────────────────────────────────────────────────────
+  # ----------------------------------------------------------------
 
   it 'set by model does not convert to partial', ->
     nmChild = new NestedModel str: 'child NestedModel'
@@ -174,12 +172,12 @@ describe 'SMITE.client.model', ->
     # model was converted to an id (our stuff works) AND hidden is missing (their stuff works)
     expect(jmParent.toJSON()).to.deep.equal str: 'jsmodel parent', model: 'id-jsmodel-child'
 
-  #──────────────────────────────────────────────────────
+  # ----------------------------------------------------------------
 
   it 'should construct using `require` options (NYI)'
     # TODO: implement test for RequiredModel
 
-  #──────────────────────────────────────────────────────
+  # ----------------------------------------------------------------
 
   it 'should receive `change` events on attributes', (done) ->
     done2 = _.after 2, done
@@ -193,7 +191,7 @@ describe 'SMITE.client.model', ->
       done2()
     bm.bool = true
 
-  #──────────────────────────────────────────────────────
+  # ----------------------------------------------------------------
 
   it 'should receive `change` events on model attributes (contruction)', (done) ->
     done4 = _.after 4, done
@@ -219,7 +217,7 @@ describe 'SMITE.client.model', ->
       done4()
     nmParent.model.str = 'child override'
 
-  #──────────────────────────────────────────────────────
+  # ----------------------------------------------------------------
 
   it 'should receive `change` events on model attributes (after construction)', (done) ->
     done2 = _.after 2, done
@@ -239,7 +237,7 @@ describe 'SMITE.client.model', ->
 
     nmChild.str = 'child override'
 
-  #──────────────────────────────────────────────────────
+  # ----------------------------------------------------------------
 
   it 'should receive `change` events on previously assigned model attributes', (done) ->
     done2 = _.after 2, done
@@ -261,12 +259,17 @@ describe 'SMITE.client.model', ->
   it 'should receive `change` events on previously assigned model attributes', ->
 
 
-  #──────────────────────────────────────────────────────
+  # ----------------------------------------------------------------
 
-  shared.model.itShouldHaveModelHelpers(BasicModel, null, null, 'BasicModel')
+  shared.model.itShouldHaveModelHelpers
+    View: NestedModel
+    Model: null
+    modelParentName: null
+    modelBaseName: 'NestedModel'
+    modelRelations: {model: null, model2:null}
 
-  #──────────────────────────────────────────────────────
-  #──────────────────────────────────────────────────────
-  #──────────────────────────────────────────────────────
-  #──────────────────────────────────────────────────────
-  #──────────────────────────────────────────────────────
+  # ----------------------------------------------------------------
+  # ----------------------------------------------------------------
+  # ----------------------------------------------------------------
+  # ----------------------------------------------------------------
+  # ----------------------------------------------------------------

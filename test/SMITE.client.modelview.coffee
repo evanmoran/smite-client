@@ -1,9 +1,8 @@
 
 SMITE = require '../src/SMITE.client'
 
-#──────────────────────────────────────────────────────
 # Before
-#──────────────────────────────────────────────────────
+# ----------------------------------------------------------------
 
 # Define Model as grab bag of all of common attribute types
 dateNow = new Date
@@ -20,6 +19,13 @@ ModelNumberView = SMITE.modelview 'Model.NumberView',
   bool: type: Boolean, default: true
   int: type: Number, default: 2, validate: SMITE.range(0, 10)
   real: type: Number, default: 2.2, validate: SMITE.range(0, 10)
+
+# NumberView - Only show number types (bool, int, real). Different validation ranges. Different defaults.
+ModelRecursiveNumberView = SMITE.modelview 'Model.RecursiveNumberView',
+  bool: type: Boolean, default: true
+  int: type: Number, default: 2, validate: SMITE.range(0, 10)
+  real: type: Number, default: 2.2, validate: SMITE.range(0, 10)
+  model: type: 'Model.RecursiveNumberView', default: null
 
 # ChildView - Only show model and str. Used to limit visability of attributes.
 ModelChildView = SMITE.modelview 'Model.ChildView',
@@ -45,16 +51,15 @@ ModelChangedView = SMITE.modelview 'Model.ChangedView',
     m.bool = not @boolNot
     m.str = @strQuoted.slice 1, @strQuoted.length-1
 
-#──────────────────────────────────────────────────────
 # Test: Smite.modelview
-#──────────────────────────────────────────────────────
+# ----------------------------------------------------------------
 
 describe 'SMITE.client.modelview', ->
 
   shared.itShouldBeAFunction(SMITE.modelview)
   shared.model.itShouldConstructABackboneModel(new Model.NumberView, SMITE.Backbone)
 
-  #──────────────────────────────────────────────────────
+  # ----------------------------------------------------------------
 
   it 'should throw if constructed with an invalid arguments'
   #   console.log ''
@@ -62,7 +67,7 @@ describe 'SMITE.client.modelview', ->
   #   ( -> SMITE.modelview('FirstArgumentIsInvalid')).should.throw 'SMITE.modelview expected the first argument to contain a period (example: `Model.View`)'
   #   ( -> SMITE.modelview('Model.View', 1)).should.throw 'SMITE.modelview expected the first argument to contain a period (example: `Model.View`)'
 
-  #──────────────────────────────────────────────────────
+  # ----------------------------------------------------------------
   it 'should support property-like access', ->
     nm = new Model.NumberView id: 'id1', bool: true, int: 2, str: 'BasicModel override', attributes: true
 
@@ -72,7 +77,7 @@ describe 'SMITE.client.modelview', ->
     nm.attributes.should.be.a 'object'
     nm.get('attributes').should.equal true
 
-  #──────────────────────────────────────────────────────
+  # ----------------------------------------------------------------
 
   it 'should construct using `default` options', ->
     nm = new Model.NumberView
@@ -84,7 +89,7 @@ describe 'SMITE.client.modelview', ->
     (nm.model == null).should.equal true
     nm.str.should.equal 'Model.ChildView.str default'
 
-  #──────────────────────────────────────────────────────
+  # ----------------------------------------------------------------
 
   it 'should construct using `validate` options', ->
     # Helper to test assignment of vm properties
@@ -100,7 +105,7 @@ describe 'SMITE.client.modelview', ->
     testAssign nv, 'real', 0, 0
     testAssign nv, 'real', -1.1, 0, 'error'
 
-  #──────────────────────────────────────────────────────
+  # ----------------------------------------------------------------
 
   it 'new model', ->
     m = new Model id: 'id1', bool: false, int: 1, real: 1.1, str: 'one'
@@ -136,11 +141,16 @@ describe 'SMITE.client.modelview', ->
     m2.date.should.equal dateNow
     assert.isNull m2.model
 
-  #──────────────────────────────────────────────────────
+  # ----------------------------------------------------------------
 
-  shared.model.itShouldHaveModelHelpers(Model.NumberView, Model, 'Model', 'NumberView')
+  shared.model.itShouldHaveModelHelpers
+    View: Model.RecursiveNumberView,
+    Model: Model
+    modelParentName: 'Model'
+    modelBaseName: 'RecursiveNumberView'
+    modelRelations: {model: null}
 
-  #──────────────────────────────────────────────────────
-  #──────────────────────────────────────────────────────
-  #──────────────────────────────────────────────────────
-  #──────────────────────────────────────────────────────
+  # ----------------------------------------------------------------
+  # ----------------------------------------------------------------
+  # ----------------------------------------------------------------
+  # ----------------------------------------------------------------

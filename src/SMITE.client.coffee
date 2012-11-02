@@ -346,6 +346,12 @@ SMITECLIENT.model = (name, data = {}) ->
       @_model = (optionalName = name) -> SMITECLIENT.models[optionalName]
       @_modelParent = -> if not parentName then null else SMITECLIENT.models[parentName]
       @_modelIsPartial = -> _.keys(@attributes).length == 1 and @id?
+      @_modelRelations = ->
+        relations = {}
+        for attr of modelAttributeTypes
+          if isModelType attr
+            relations[attr] = @get attr
+        relations
 
       # TODO: Change this to a Object.setProperty that looks up value from SMITE.settings (on client)
       @urlRoot = "/api/#{name}"
