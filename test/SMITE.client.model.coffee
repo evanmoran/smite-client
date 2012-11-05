@@ -256,6 +256,15 @@ describe 'SMITE.client.model', ->
       done2()
     nmChild2.str = 'child override'
 
+  it 'initialize override', ->
+    InitializedModel = SMITE.model 'InitializedModel'
+      str: type: String, default: "InitializedModel default"
+      initialize: ->
+        expect(@str).to.equal "InitializedModel construction"
+        @str = "InitializedModel initial"
+    initModel = new InitializedModel(str: "InitializedModel construction")
+    expect(initModel.str).to.equal "InitializedModel initial"
+
   it 'should receive `change` events on previously assigned model attributes', ->
 
 

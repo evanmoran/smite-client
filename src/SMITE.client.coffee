@@ -227,8 +227,10 @@ SMITECLIENT.model = (name, data = {}) ->
   modelValidator = if _.isFunction data.validate then _data.validate else null
   modelToJson = data.toJSON
   modelParse = data.parse or (v) -> v
-  delete data.toJSON # this will be called by toJSON on extender
-  delete data.parse # this will be called by parse on extender
+  modelInitialize = data.initialize or (attr) ->
+  delete data.toJSON      # this will be called by toJSON on extender
+  delete data.parse       # this will be called by parse on extender
+  delete data.initialize  # this will be called by initialize on extender
 
   extender =
     # Defaults pass through
@@ -404,6 +406,9 @@ SMITECLIENT.model = (name, data = {}) ->
               else if type.lastIndexOf('change:', 0) == 0
                 parent.ref.trigger "change:#{parent.attribute}", parent.ref, me, output, cycleGuard
                 parent.ref.trigger 'change', parent.ref, output, cycleGuard
+
+      # Invoke user initialize
+      modelInitialize.apply @, arguments
 
     # Override set to keep track of parent model references
     set: (_attr, _value) ->
